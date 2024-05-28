@@ -156,7 +156,7 @@ namespace StockAlDia
             }
         }
 
-        //Conexion a la BD SQL
+        //Conexion a la BD SQL 
         public bool ConexionBD()
         {
             try
@@ -171,6 +171,16 @@ namespace StockAlDia
                 if (CnnxICGMx.State == ConnectionState.Open)
                 {
                     EscribirLog("info", "Conexion a la BD con Exito.", false, 0);
+                    // Verificar y crear tablas donde se recibe Stock 
+                    if (!TableExists(CnnxICGMx, "STOCKEXPORTADO"))
+                    {
+                        CreateTableStockExp(CnnxICGMx);
+                    }
+
+                    if (!TableExists(CnnxICGMx, "STOCKIMPORT"))
+                    {
+                        CreateTableStockIpor(CnnxICGMx);
+                    }
                     return true;
                 }
                 else
@@ -184,6 +194,53 @@ namespace StockAlDia
 
                 EscribirLog("info", $"No es posible conectarse a la Base de Datos.\n Servidor: {ServidorSQL}\nUsuario:{UsuarioSQL}\nPass:{PassSQL}\nBD:{BDGeneral}\n ({e.Message})", true, 1);
                 return false;
+            }
+        }
+
+        private bool TableExists(SqlConnection connection, string tableName)//Valida que la tabla exista
+        {
+            string query = $"SELECT CASE WHEN OBJECT_ID('{tableName}', 'U') IS NOT NULL THEN 1 ELSE 0 END";
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                return (int)command.ExecuteScalar() == 1;
+            }
+        }
+
+        private void CreateTableStockExp(SqlConnection connection)//Crear tabla STOCKEXPORTADO
+        {
+            string query = @"
+            CREATE TABLE STOCKEXPORTADO (
+                [Fecha] [date] NULL,
+	[CodArticulo] [int] NULL,
+	[Referencia] [nvarchar](50) NULL,
+	[CodAlmacen] [int] NULL,
+	[Almacen] [nvarchar](50) NULL,
+	[TipoMovimiento] [nvarchar](50) NULL,
+	[VariacionStock] [nvarchar](50) NULL
+            )";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.ExecuteNonQuery();
+                EscribirLog("info", "Tabla 'STOCKEXPORTADO' creada con éxito.", false, 0);
+            }
+        }
+
+        private void CreateTableStockIpor(SqlConnection connection)//Crear tabla STOCKIMPORT
+        {
+            string query = @"
+            CREATE TABLE STOCKIMPORT (
+    [Fecha] [date] NULL,
+	[CodArticulo] [int] NULL,
+	[Referencia] [nvarchar](50) NULL,
+	[CodAlmacen] [int] NULL,
+	[StockFinal] [nvarchar](50) NULL
+            )";
+
+            using (SqlCommand command = new SqlCommand(query, connection))
+            {
+                command.ExecuteNonQuery();
+                EscribirLog("info", "Tabla 'STOCKIMPORT' creada con éxito.", false, 0);
             }
         }
 
