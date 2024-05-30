@@ -201,6 +201,7 @@ namespace StockAlDia
                 }
                 funciones.EscribirLog("info", "Se importaron los registros de manera correcta los registros", true, 2);
                 ReconstruirStock();
+                ArmarImporHioffice();
             }
             catch (Exception ex)
             {
@@ -236,6 +237,61 @@ namespace StockAlDia
             {
                 funciones.EscribirLog("info", $"Error al regenerar el stock: {ex.Message}", true, 1);
             }
+        }
+
+        private void ArmarImporHioffice()
+        {
+            try
+            {
+                SqlCommand ArmarCSVaImportar = new SqlCommand($"SELECT * FROM {funciones.BDGeneral}..STOCKIMPORT where Fecha = '2023-12-20'", funciones.CnnxICGMx);
+                SqlDataReader ArmaArchivo = ArmarCSVaImportar.ExecuteReader();
+
+                // Crear un StringBuilder para construir el contenido del CSV
+                StringBuilder csvContent = new StringBuilder();
+
+                // Escribir los nombres de las columnas en la primera fila del CSV
+                for (int i = 0; i < ArmaArchivo.FieldCount; i++)
+                {
+                    csvContent.Append(ArmaArchivo.GetName(i));
+                    if (i < ArmaArchivo.FieldCount - 1)
+                        csvContent.Append(";");
+                }
+                csvContent.AppendLine();
+
+                while (ArmaArchivo.Read())
+                {
+                    for (int i = 0; i < ArmaArchivo.FieldCount; i++)
+                    {
+                        csvContent.Append(ArmaArchivo.GetValue(i).ToString());
+                        if (i < ArmaArchivo.FieldCount - 1)
+                            csvContent.Append(";");
+                    }
+                    csvContent.AppendLine();
+                }
+                ArmaArchivo.Close();
+
+                // Generar el nombre del archivo basado en la fecha actual
+                string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+                string csvFileName = $"Exportacion_{currentDate}.csv";
+
+                // Definir la ruta del archivo CSV
+                // string csvPathArchivo = @"C:\Users\USER\source\repos\Iris2712\StockAlDia\bin\Debug\Exportaciones\datos.csv";
+
+                string csvPathArchivo = $@"C:\Users\USER\source\repos\Iris2712\StockAlDia\bin\Debug\Exportaciones\{csvFileName}";
+                string csvFilePath = Path.Combine(csvPathArchivo, csvFileName);
+
+                // Guardar el contenido en un archivo CSV
+                File.WriteAllText(csvPathArchivo, csvContent.ToString(), Encoding.UTF8);
+
+                funciones.EscribirLog("info","Archivo CSV creado y guardado en " + csvPathArchivo,true,1);
+
+
+            }
+            catch(Exception ex)
+            {
+                funciones.EscribirLog("info", $"Error al armar el archivo a importar: {ex.Message}", true, 1);
+            }
+
         }
 
 
