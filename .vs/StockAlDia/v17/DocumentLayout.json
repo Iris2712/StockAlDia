@@ -1,0 +1,70 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\USER\\source\\repos\\Iris2712\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|c:\\users\\user\\source\\repos\\iris2712\\pinicial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|solutionrelative:pinicial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|c:\\users\\user\\source\\repos\\iris2712\\funciones.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|solutionrelative:funciones.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|c:\\users\\user\\source\\repos\\iris2712\\pinicial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form",
+      "RelativeMoniker": "D:0:0:{4EC1E029-211C-40F9-A60D-9C382879266D}|StockAlDia.csproj|solutionrelative:pinicial.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}|Form"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Funciones.cs",
+              "DocumentMoniker": "C:\\Users\\USER\\source\\repos\\Iris2712\\Funciones.cs",
+              "RelativeDocumentMoniker": "Funciones.cs",
+              "ToolTip": "C:\\Users\\USER\\source\\repos\\Iris2712\\Funciones.cs",
+              "RelativeToolTip": "Funciones.cs",
+              "ViewState": "AQIAAB4AAAAAAAAAAAA5wAAAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-05-24T23:25:34.346Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Pinicial.cs",
+              "DocumentMoniker": "C:\\Users\\USER\\source\\repos\\Iris2712\\Pinicial.cs",
+              "RelativeDocumentMoniker": "Pinicial.cs",
+              "ToolTip": "C:\\Users\\USER\\source\\repos\\Iris2712\\Pinicial.cs",
+              "RelativeToolTip": "Pinicial.cs",
+              "ViewState": "AQIAAEIAAAAAAAAAAAAowDQAAAAAAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-05-24T23:19:57.433Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Pinicial.cs [Dise\u00F1o]",
+              "DocumentMoniker": "C:\\Users\\USER\\source\\repos\\Iris2712\\Pinicial.cs",
+              "RelativeDocumentMoniker": "Pinicial.cs",
+              "ToolTip": "C:\\Users\\USER\\source\\repos\\Iris2712\\Pinicial.cs [Dise\u00F1o]",
+              "RelativeToolTip": "Pinicial.cs [Dise\u00F1o]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-05-24T23:19:39.623Z",
+              "EditorCaption": " [Dise\u00F1o]"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

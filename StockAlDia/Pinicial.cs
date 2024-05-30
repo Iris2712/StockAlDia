@@ -200,13 +200,60 @@ namespace StockAlDia
                     //funciones.EscribirLog("info", "Se importo de manera correcta los registros", true, 2);
                 }
                 funciones.EscribirLog("info", "Se importaron los registros de manera correcta los registros", true, 2);
-
+                ReconstruirStock();
             }
             catch (Exception ex)
             {
                 funciones.EscribirLog("info", $"Error al importar el stock: {ex.Message}", true, 1);
             }
         }
+
+        private void ReconstruirStock()
+        {
+            Object msj = null;
+
+            try
+            {
+                SqlCommand ReconstruirStock = new SqlCommand("SELECT Referencia,CodAlmacen," +
+                    "SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) AS unidades_compra," +
+                    "SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS unidades_venta," +
+                    "SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) - " +
+                    "SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS unidades_neto " +
+                    $"FROM {funciones.BDGeneral}..STOCKEXPORTADO GROUP BY Referencia, CodAlmacen", funciones.CnnxICGMx);
+                SqlDataReader Reconstr = ReconstruirStock.ExecuteReader();
+                while (Reconstr.Read()) {
+
+                    string referencia = Reconstr["Referencia"].ToString();
+                    string codAlmacen = Reconstr["CodAlmacen"].ToString();
+                    int unidadesCompra = Convert.ToInt32(Reconstr["unidades_compra"]);
+                    int unidadesVenta = Convert.ToInt32(Reconstr["unidades_venta"]);
+                    int unidadesNeto = Convert.ToInt32(Reconstr["unidades_neto"]);
+
+
+                    
+                    msj=String.Format($"Referencia: {referencia}, Almacén: {codAlmacen}, " +
+                                       $"Unidades Compra: {unidadesCompra}, Unidades Venta: {unidadesVenta}, " +
+                                       $"Unidades Neto: {unidadesNeto}");
+
+
+
+                }
+                Reconstr.Close();
+                funciones.EscribirLog("info", $"Se realizó de manera correcta el Recalculo se Stock:{msj}", true, 2);
+            }
+            catch (Exception ex)
+            {
+                funciones.EscribirLog("info", $"Error al regenerar el stock: {ex.Message}", true, 1);
+            }
+        }
+
+
+
+
+
+
+
+
 
         private void ImportHiofficeSinFichero()
         {
