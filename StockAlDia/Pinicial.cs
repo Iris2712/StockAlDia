@@ -214,38 +214,31 @@ namespace StockAlDia
 
             try
             {
-                SqlCommand ReconstruirStock = new SqlCommand("SELECT Referencia,CodAlmacen," +
-                    "SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) AS unidades_compra," +
-                    "SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS unidades_venta," +
-                    "SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) - " +
-                    "SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS unidades_neto " +
-                    $"FROM {funciones.BDGeneral}..STOCKEXPORTADO GROUP BY Referencia, CodAlmacen", funciones.CnnxICGMx);
+                SqlCommand ReconstruirStock = new SqlCommand($"WITH RecalculoStock AS (" +
+                    $"SELECT " +
+                    $"Fecha,CodArticulo,Referencia,CodAlmacen," +
+                    $"SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) AS TotalCompras," +
+                    $"SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS TotalVentas," +
+                    $"SUM(CASE WHEN TipoMovimiento = 'ajuste' THEN VariacionStock ELSE 0 END) AS TotalAjuste " +
+                    $"FROM {funciones.BDGeneral}..STOCKEXPORTADO " +
+                    $"GROUP BY Fecha, CodArticulo, Referencia, CodAlmacen) " +
+                    $"INSERT INTO {funciones.BDGeneral}..STOCKIMPORT(Fecha, CodArticulo, Referencia, CodAlmacen, StockFinal) " +
+                    $"SELECT fecha,CodArticulo,referencia,CodAlmacen,TotalCompras + TotalVentas + TotalAjuste AS StockFinal " +
+                    $"FROM  RecalculoStock", funciones.CnnxICGMx);
                 SqlDataReader Reconstr = ReconstruirStock.ExecuteReader();
                 while (Reconstr.Read()) {
 
-                    string referencia = Reconstr["Referencia"].ToString();
-                    string codAlmacen = Reconstr["CodAlmacen"].ToString();
-                    int unidadesCompra = Convert.ToInt32(Reconstr["unidades_compra"]);
-                    int unidadesVenta = Convert.ToInt32(Reconstr["unidades_venta"]);
-                    int unidadesNeto = Convert.ToInt32(Reconstr["unidades_neto"]);
-
-
-                    
-                    msj=String.Format($"Referencia: {referencia}, Almacén: {codAlmacen}, " +
-                                       $"Unidades Compra: {unidadesCompra}, Unidades Venta: {unidadesVenta}, " +
-                                       $"Unidades Neto: {unidadesNeto}");
-
-
-
                 }
                 Reconstr.Close();
-                funciones.EscribirLog("info", $"Se realizó de manera correcta el Recalculo se Stock:{msj}", true, 2);
+                funciones.EscribirLog("info", $"Se realizó de manera correcta el Recalculo se Stock", true, 2);
             }
             catch (Exception ex)
             {
                 funciones.EscribirLog("info", $"Error al regenerar el stock: {ex.Message}", true, 1);
             }
         }
+
+
 
 
 
