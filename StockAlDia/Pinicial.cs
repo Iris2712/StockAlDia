@@ -46,12 +46,13 @@ namespace StockAlDia
             {
                 funciones.ConexionBD();
                 // Llamada al método para conectar al WS
-                ConectarWebService();
+                ConectarWebService("Exportacion");
+                
             }
         }
 
 
-        private async void ConectarWebService()
+        private async void ConectarWebService(String tipoConx)
         {
             //email = "fashion@hioposmexico.com.mx";
             //password = "AD1D4$2023";
@@ -83,7 +84,15 @@ namespace StockAlDia
                         funciones.cloudClient = adressElement.Value;
                         funciones.Token = authTokenElement.Value;
                         funciones.EscribirLog("info", $"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}", true, 2);
-                        Exportación(funciones.Token,funciones.cloudClient, "2023-12-20", "2023-12-20");
+
+                        if(tipoConx == "Exportacion")
+                        {
+                            Exportación(funciones.Token, funciones.cloudClient, "2023-12-20", "2023-12-20");
+                        }else if(tipoConx == "Import")
+                        {
+                            MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
+                        }
+                        
                     }
                     else
                     {
@@ -184,7 +193,8 @@ namespace StockAlDia
                     int codArticulo = Convert.ToInt32(registro.Element("CodArticulo").Value);
 
                     //Importar Stock del exportador
-                    SqlCommand InsertStockExportador = new SqlCommand("INSERT INTO STOCKEXPORTADO (Fecha, CodArticulo, Referencia, CodAlmacen, Almacen, TipoMovimiento, VariacionStock) VALUES (@Fecha, @CodArticulo, @Referencia, @CodAlmacen, @Almacen, @TipoMovimiento, @VariacionStock)", funciones.CnnxICGMx);
+                    SqlCommand InsertStockExportador = new SqlCommand("INSERT INTO STOCKEXPORTADO (Fecha, CodArticulo, Referencia, CodAlmacen, Almacen, TipoMovimiento, VariacionStock) " +
+                        "VALUES (@Fecha, @CodArticulo, @Referencia, @CodAlmacen, @Almacen, @TipoMovimiento, @VariacionStock)", funciones.CnnxICGMx);
                     InsertStockExportador.Parameters.AddWithValue("@fecha", fecha);
                     InsertStockExportador.Parameters.AddWithValue("@Referencia", referencia);
                     InsertStockExportador.Parameters.AddWithValue("@CodAlmacen", codAlmacen);
@@ -211,8 +221,6 @@ namespace StockAlDia
 
         private void ReconstruirStock()
         {
-            Object msj = null;
-
             try
             {
                 SqlCommand ReconstruirStock = new SqlCommand($"WITH RecalculoStock AS (" +
@@ -283,8 +291,10 @@ namespace StockAlDia
                 // Guardar el contenido en un archivo CSV
                 File.WriteAllText(csvPathArchivo, csvContent.ToString(), Encoding.UTF8);
 
-                funciones.EscribirLog("info","Archivo CSV creado y guardado en " + csvPathArchivo,true,1);
+                funciones.EscribirLog("info","Archivo CSV creado y guardado en " + csvPathArchivo,true,2);
 
+                CloseConexionWebService(funciones.Token,funciones.cloudClient);//Logout
+                ConectarWebService("Import");
 
             }
             catch(Exception ex)
@@ -294,21 +304,34 @@ namespace StockAlDia
 
         }
 
-
-
-
-
-
-
-
-
-
-
-        private void ImportHiofficeSinFichero()
+        private async void CloseConexionWebService(string token, string cloud)
         {
+            string Servidor = $"https://{cloud}";
 
-
+            using (HttpClient httpClient = new HttpClient { BaseAddress = new Uri(Servidor) })
+            {
+                httpClient.DefaultRequestHeaders.Add("x-auth-token", token);
+                try
+                {
+                    HttpResponseMessage response = await httpClient.GetAsync("ErpCloud/session/logout");
+                    if (response.IsSuccessStatusCode)
+                    {
+                        funciones.EscribirLog("info", "Logout Exitoso", true, 2);
+                    }
+                    else
+                    {
+                        funciones.EscribirLog("info", "Logout failed. Status code:" + response.StatusCode, true, 4);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    funciones.EscribirLog("info", "Request error: " + ex.Message, true, 1);
+                }
+            }
         }
+
+
+       
     }
 
 
