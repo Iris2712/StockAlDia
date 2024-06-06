@@ -18,11 +18,12 @@ namespace StockAlDia
     {
 
         //Variables Generales
-        public static string DirectorioInicial = $"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}";
+        public  string DirectorioInicial = $"{Path.GetDirectoryName(Assembly.GetEntryAssembly().Location)}";
         public static string LogNombre = $"Log_StockAlDia_{DateTime.Now.ToString("dd/MM/yyyy").Replace('/', '-')}.txt";
         public static string ArchivoConfig = $"Config.icg";
         //Xml ruta                                                                                                       
         public string path = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData) + @"\VirtualStore\Program Files (x86)\ICG\ICGManager\AutGastos.XML");
+        
 
         public SqlConnection CnnxICGMx = null;
 

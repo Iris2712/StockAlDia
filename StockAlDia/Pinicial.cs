@@ -14,6 +14,7 @@ using Newtonsoft.Json.Linq;
 using System.Data.SqlClient;
 using System.Xml;
 using Microsoft.Win32;
+using System.Net.Http.Headers;
 
 namespace StockAlDia
 {
@@ -90,9 +91,9 @@ namespace StockAlDia
                             Exportación(funciones.Token, funciones.cloudClient, "2023-12-20", "2023-12-20");
                         }else if(tipoConx == "Import")
                         {
-                            MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
+                            ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token, "C:\\Users\\USER\\source\\repos\\Iris2712\\StockAlDia\\bin\\Debug\\Exportaciones\\ExportacionP.csv");
+                            //MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
                         }
-                        
                     }
                     else
                     {
@@ -177,8 +178,7 @@ namespace StockAlDia
         {
             try
             {
-                // Cargar el documento XML 
-                XDocument xmlDoc = XDocument.Parse(ExportDeco);
+                XDocument xmlDoc = XDocument.Parse(ExportDeco);// Cargar el documento XML 
 
                 // Iterar a través de cada elemento <registro> en el XML
                 foreach (var registro in xmlDoc.Descendants("registro"))
@@ -254,15 +254,18 @@ namespace StockAlDia
                 SqlCommand ArmarCSVaImportar = new SqlCommand($"SELECT * FROM {funciones.BDGeneral}..STOCKIMPORT where Fecha = '2023-12-20'", funciones.CnnxICGMx);
                 SqlDataReader ArmaArchivo = ArmarCSVaImportar.ExecuteReader();
 
-                // Crear un StringBuilder para construir el contenido del CSV
-                StringBuilder csvContent = new StringBuilder();
+                StringBuilder csvContent = new StringBuilder();// Crear un StringBuilder para construir el contenido del CSV
 
                 // Escribir los nombres de las columnas en la primera fila del CSV
                 for (int i = 0; i < ArmaArchivo.FieldCount; i++)
                 {
-                    csvContent.Append(ArmaArchivo.GetName(i));
-                    if (i < ArmaArchivo.FieldCount - 1)
-                        csvContent.Append(";");
+                    string columnName = ArmaArchivo.GetName(i);
+                    if (columnName != "Referencia")
+                    {
+                        csvContent.Append(columnName);
+                        if (i < ArmaArchivo.FieldCount - 1)
+                            csvContent.Append(";");
+                    }
                 }
                 csvContent.AppendLine();
 
@@ -270,9 +273,25 @@ namespace StockAlDia
                 {
                     for (int i = 0; i < ArmaArchivo.FieldCount; i++)
                     {
-                        csvContent.Append(ArmaArchivo.GetValue(i).ToString());
-                        if (i < ArmaArchivo.FieldCount - 1)
-                            csvContent.Append(";");
+                        string columnName = ArmaArchivo.GetName(i);
+                        if (columnName != "Referencia")
+                        {
+                            object value = ArmaArchivo.GetValue(i);
+
+                            // Si el valor es de tipo fecha, formatearlo solo con la fecha
+                            if (value is DateTime)
+                            {
+                                DateTime dateValue = (DateTime)value;
+                                csvContent.Append(dateValue.ToString("yyyy-MM-dd"));
+                            }
+                            else
+                            {
+                                csvContent.Append(value.ToString());
+                            }
+
+                            if (i < ArmaArchivo.FieldCount - 1)
+                                csvContent.Append(";");
+                        }
                     }
                     csvContent.AppendLine();
                 }
@@ -285,17 +304,16 @@ namespace StockAlDia
                 // Definir la ruta del archivo CSV
                 // string csvPathArchivo = @"C:\Users\USER\source\repos\Iris2712\StockAlDia\bin\Debug\Exportaciones\datos.csv";
 
-                string csvPathArchivo = $@"C:\Users\USER\source\repos\Iris2712\StockAlDia\bin\Debug\Exportaciones\{csvFileName}";
+                string csvPathArchivo = $@"{funciones.DirectorioInicial}\Exportaciones\{csvFileName}";
                 string csvFilePath = Path.Combine(csvPathArchivo, csvFileName);
 
                 // Guardar el contenido en un archivo CSV
                 File.WriteAllText(csvPathArchivo, csvContent.ToString(), Encoding.UTF8);
 
-                funciones.EscribirLog("info","Archivo CSV creado y guardado en " + csvPathArchivo,true,2);
+                funciones.EscribirLog("info",$"Archivo CSV creado y guardado en  {csvPathArchivo}\n DIRECTORIO:\n{funciones.DirectorioInicial}",true,2);
 
                 CloseConexionWebService(funciones.Token,funciones.cloudClient);//Logout
-                ConectarWebService("Import");
-
+                ConectarWebService("Import");//Nueva conexión para Importación
             }
             catch(Exception ex)
             {
@@ -330,8 +348,40 @@ namespace StockAlDia
             }
         }
 
+        public static async Task<string> ImportHiofficeConArchivo(string cloud, string id_importation, string token, string filePath)
+        {
+            string url = $"https://{cloud}/bridge-back/api/import/{id_importation}/launchWithFile";// URL completa para la petición POST
 
-       
+            using (var client = new HttpClient())
+            {
+                client.DefaultRequestHeaders.Add("x-auth-token", token);// Establecer el token de autenticación en el encabezado
+
+                var form = new MultipartFormDataContent();// Crear el contenido multipart/form-data
+
+                // Agregar el archivo al contenido del formulario
+                var fileContent = new ByteArrayContent(File.ReadAllBytes(filePath));
+                fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
+                form.Add(fileContent, "file", Path.GetFileName(filePath));
+
+                try
+                {
+                    var response = await client.PostAsync(url, form);// Hacer la petición POST
+                    response.EnsureSuccessStatusCode();// Verificar que la respuesta sea exitosa
+
+                    // Leer la respuesta y convertirla en un string
+                    var responseBody = await response.Content.ReadAsStringAsync();
+                    return responseBody;
+                    funciones.EscribirLog("info", responseBody, true, 4);
+                }
+                catch (HttpRequestException e)
+                {
+                    return $"Error: {e.Message}";
+                }
+            }
+
+        }
+
+
     }
 
 
