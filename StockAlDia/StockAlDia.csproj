@@ -109,6 +109,7 @@
   <ItemGroup>
     <Content Include="en-stock.ico" />
     <Content Include="inventario.ico" />
+    <None Include="Resources\configuraciones.png" />
     <None Include="Resources\ocultar.png" />
     <None Include="Resources\muestra.png" />
   </ItemGroup>
