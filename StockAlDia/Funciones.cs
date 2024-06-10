@@ -47,6 +47,10 @@ namespace StockAlDia
         public string responseData { get; set; }
         public string decoExport { get; set; }
 
+        //Filtro de fechas
+        public string fechIni {  get; set; }
+        public string fechFin {  get; set; }
+
 
 
         //Escribir LOG de la Aplicación.

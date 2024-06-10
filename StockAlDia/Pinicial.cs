@@ -26,12 +26,13 @@ namespace StockAlDia
         private ConexionBD conexionBD = new ConexionBD();
         public Boolean r;
 
+
         public PInicial()
         {
             InitializeComponent();
-            
+
             funciones.EscribirLog("INICIO", "Inicio aplicación", false, 0);
-            
+
             ComponenetesIniciales = funciones.Inicializar();
             if (ComponenetesIniciales == false)
             {
@@ -47,8 +48,8 @@ namespace StockAlDia
             {
                 funciones.ConexionBD();
                 // Llamada al método para conectar al WS
-                ConectarWebService("Exportacion");
-                
+                //ConectarWebService("Exportacion");
+
             }
         }
 
@@ -76,7 +77,7 @@ namespace StockAlDia
                     {
                         string responseBody = await response.Content.ReadAsStringAsync();
                         funciones.EscribirLog("info", $"Respuesta del servicio web: {responseBody}", true, 2);
-                        
+
                         //Leer XML de respuesta del WS
                         XDocument xmlDoc = XDocument.Parse(responseBody);
                         XElement adressElement = xmlDoc.Descendants("address").FirstOrDefault();
@@ -86,10 +87,12 @@ namespace StockAlDia
                         funciones.Token = authTokenElement.Value;
                         funciones.EscribirLog("info", $"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}", true, 2);
 
-                        if(tipoConx == "Exportacion")
+                        if (tipoConx == "Exportacion")
                         {
-                            Exportación(funciones.Token, funciones.cloudClient, "2023-12-20", "2023-12-20");
-                        }else if(tipoConx == "Import")
+                            //Exportación(funciones.Token, funciones.cloudClient, "2023-12-20", "2023-12-20");
+                            Exportación(funciones.Token, funciones.cloudClient, funciones.fechIni, funciones.fechFin);
+                        }
+                        else if (tipoConx == "Import")
                         {
                             ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token, "C:\\Users\\USER\\source\\repos\\Iris2712\\StockAlDia\\bin\\Debug\\Exportaciones\\ExportacionP.csv");
                             //MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
@@ -107,10 +110,10 @@ namespace StockAlDia
             }
         }
 
-        private async void Exportación(string token,string cloud,string startDate, string endDate)
+        private async void Exportación(string token, string cloud, string startDate, string endDate)
         {
-        
-            
+
+
             try
             {
                 funciones.urlPostExport = $"https://{cloud}/ErpCloud/exportation/launch";// URL de la API
@@ -120,7 +123,7 @@ namespace StockAlDia
 
                 using (HttpClient client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.Add("x-auth-token",$"{token}");// Configurar el encabezado con el token de autorización
+                    client.DefaultRequestHeaders.Add("x-auth-token", $"{token}");// Configurar el encabezado con el token de autorización
                     StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");// Configurar el contenido del cuerpo como JSON
 
                     // Realizar la solicitud POST
@@ -134,7 +137,7 @@ namespace StockAlDia
                     }
                     else
                     {
-                        funciones.EscribirLog("info",$"Error: {response.StatusCode} - {response.Content.ReadAsStringAsync()}",true,1);
+                        funciones.EscribirLog("info", $"Error: {response.StatusCode} - {response.Content.ReadAsStringAsync()}", true, 1);
                     }
                 }
             }
@@ -162,13 +165,14 @@ namespace StockAlDia
                     funciones.decoExport = Encoding.UTF8.GetString(data);// Convertir los bytes a una cadena
                     funciones.EscribirLog("info", $"Cadena decodificada: {funciones.decoExport}", false, 2);
                     ImportarStockExportador(funciones.decoExport);
-                    
+
                 }
                 else
                 {
                     funciones.EscribirLog("info", "El JSON no tiene la estructura esperada.", true, 1);
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 funciones.EscribirLog("info", $"Error en la lectura del JSON:{ex.Message}", true, 1);
             }
@@ -223,19 +227,29 @@ namespace StockAlDia
         {
             try
             {
-                SqlCommand ReconstruirStock = new SqlCommand($"WITH RecalculoStock AS (" +
-                    $"SELECT " +
-                    $"Fecha,CodArticulo,Referencia,CodAlmacen," +
-                    $"SUM(CASE WHEN TipoMovimiento = 'compra' THEN VariacionStock ELSE 0 END) AS TotalCompras," +
-                    $"SUM(CASE WHEN TipoMovimiento = 'venta' THEN VariacionStock ELSE 0 END) AS TotalVentas," +
-                    $"SUM(CASE WHEN TipoMovimiento = 'ajuste' THEN VariacionStock ELSE 0 END) AS TotalAjuste " +
-                    $"FROM {funciones.BDGeneral}..STOCKEXPORTADO " +
-                    $"GROUP BY Fecha, CodArticulo, Referencia, CodAlmacen) " +
-                    $"INSERT INTO {funciones.BDGeneral}..STOCKIMPORT(Fecha, CodArticulo, Referencia, CodAlmacen, StockFinal) " +
-                    $"SELECT fecha,CodArticulo,referencia,CodAlmacen,TotalCompras + TotalVentas + TotalAjuste AS StockFinal " +
-                    $"FROM  RecalculoStock", funciones.CnnxICGMx);
+                SqlCommand ReconstruirStock = new SqlCommand($"DECLARE RecalculaStock CURSOR FOR " +
+                    $"SELECT DISTINCT CodArticulo, CodAlmacen, Fecha FROM BDAPPSAD..STOCKEXPORTADO " +
+                    $"ORDER BY CodArticulo, Fecha;" +
+                    $"DECLARE @CodArticulo INT, @CodAlmacen INT, @Fecha DATE;" +
+                    $"DECLARE @TotalVariacionStock FLOAT;" +
+                    $"OPEN RecalculaStock;" +
+                    $"FETCH NEXT FROM RecalculaStock INTO @CodArticulo, @CodAlmacen, @Fecha;" +
+                    $"WHILE @@FETCH_STATUS = 0" +
+                    $"BEGIN" +
+                    $"  SELECT @TotalVariacionStock = SUM(CAST(VariacionStock AS FLOAT))" +
+                    $"  FROM BDAPPSAD..STOCKEXPORTADO " +
+                    $"  WHERE CodArticulo = @CodArticulo AND CodAlmacen = @CodAlmacen AND Fecha <= @Fecha;" +
+                    $"  DELETE FROM BDAPPSAD..STOCKIMPORT " +
+                    $"  WHERE Fecha = @Fecha AND CodArticulo = @CodArticulo AND CodAlmacen = @CodAlmacen;" +
+                    $"  INSERT INTO BDAPPSAD..STOCKIMPORT (Fecha, CodArticulo, CodAlmacen, StockFinal) " +
+                    $"  VALUES (@Fecha, @CodArticulo, @CodAlmacen, @TotalVariacionStock);" +
+                    $"  FETCH NEXT FROM RecalculaStock INTO @CodArticulo, @CodAlmacen, @Fecha;" +
+                    $"END;" +
+                    $"CLOSE RecalculaStock;" +
+                    $"DEALLOCATE RecalculaStock;", funciones.CnnxICGMx);
                 SqlDataReader Reconstr = ReconstruirStock.ExecuteReader();
-                while (Reconstr.Read()) {
+                while (Reconstr.Read())
+                {
 
                 }
                 Reconstr.Close();
@@ -310,12 +324,12 @@ namespace StockAlDia
                 // Guardar el contenido en un archivo CSV
                 File.WriteAllText(csvPathArchivo, csvContent.ToString(), Encoding.UTF8);
 
-                funciones.EscribirLog("info",$"Archivo CSV creado y guardado en  {csvPathArchivo}\n DIRECTORIO:\n{funciones.DirectorioInicial}",true,2);
+                funciones.EscribirLog("info", $"Archivo CSV creado y guardado en  {csvPathArchivo}\n DIRECTORIO:\n{funciones.DirectorioInicial}", true, 2);
 
-                CloseConexionWebService(funciones.Token,funciones.cloudClient);//Logout
+                CloseConexionWebService(funciones.Token, funciones.cloudClient);//Logout
                 ConectarWebService("Import");//Nueva conexión para Importación
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 funciones.EscribirLog("info", $"Error al armar el archivo a importar: {ex.Message}", true, 1);
             }
@@ -381,9 +395,24 @@ namespace StockAlDia
 
         }
 
+        private void EjecutaManual_Click(object sender, EventArgs e)
+        {
+            //Asignar variables
+            funciones.fechIni = fechaInicio.Text;
+            funciones.fechFin = fechaFin.Text;
+            funciones.EscribirLog("info", $"Se ejecuto de manera manual: " +
+                $"\nFecha Inicio:{funciones.fechIni}\nFecha Fin:{funciones.fechFin}", true, 4); 
 
+            ConectarWebService("Exportacion");
+        }
+
+        private void btnConfi_Click(object sender, EventArgs e)
+        {
+            ConexionBD conBD = new ConexionBD(funciones);
+            conBD.ShowDialog();
+
+        }
     }
-
 
     public class ExportedDoc
     {
