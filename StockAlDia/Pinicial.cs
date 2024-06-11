@@ -58,6 +58,8 @@ namespace StockAlDia
                 {//si hay parametro
                     if (param == "Plugin")
                     {
+                        funciones.fechIni = fechaInicio.Text;
+                        funciones.fechFin = fechaFin.Text;
                         ConectarWebService("Exportacion");
                     }
                 }
@@ -108,7 +110,8 @@ namespace StockAlDia
                         }
                         else if (tipoConx == "Import")
                         {
-                            ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token, "C:\\Users\\USER\\source\\repos\\Iris2712\\StockAlDia\\bin\\Debug\\Exportaciones\\ExportacionP.csv");
+                            string pathExport = "C:\\Users\\USER\\source\\repos\\Iris2712\\StockAlDia\\bin\\Debug\\Exportaciones\\ExportacionP.csv";
+                            ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token,pathExport );
                             //MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
                         }
                     }
@@ -279,7 +282,8 @@ namespace StockAlDia
         {
             try
             {
-                SqlCommand ArmarCSVaImportar = new SqlCommand($"SELECT * FROM {funciones.BDGeneral}..STOCKIMPORT where Fecha = '2023-12-20'", funciones.CnnxICGMx);
+                SqlCommand ArmarCSVaImportar = new SqlCommand($"SELECT * FROM {funciones.BDGeneral}..STOCKIMPORT " +
+                    $"WHERE Fecha BETWEEN CAST('{funciones.fechIni}' AS DATE) AND CAST('{funciones.fechFin}' AS DATE);", funciones.CnnxICGMx);
                 SqlDataReader ArmaArchivo = ArmarCSVaImportar.ExecuteReader();
 
                 StringBuilder csvContent = new StringBuilder();// Crear un StringBuilder para construir el contenido del CSV
@@ -325,23 +329,30 @@ namespace StockAlDia
                 }
                 ArmaArchivo.Close();
 
-                // Generar el nombre del archivo basado en la fecha actual
-                string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
-                string csvFileName = $"Exportacion_{currentDate}.csv";
+                //// Generar el nombre del archivo basado en la fecha actual
+                ////-- string currentDate = DateTime.Now.ToString("yyyy-MM-dd");
+                ////-- string csvFileName = $"Exportacion_{currentDate}.csv";
+
+                //// Definir la ruta del archivo CSV por nombre con fecha
+                //string csvPathArchivo = $@"{funciones.DirectorioInicial}\Exportaciones\ExportacionStock.csv";
+                ////string csvPathArchivo = $@"{funciones.DirectorioInicial}\Exportaciones\{csvFileName}";
+                //string csvFilePath = Path.Combine(csvPathArchivo, "ExportacionStock.csv");
 
                 // Definir la ruta del archivo CSV
-                // string csvPathArchivo = @"C:\Users\USER\source\repos\Iris2712\StockAlDia\bin\Debug\Exportaciones\datos.csv";
-
-                string csvPathArchivo = $@"{funciones.DirectorioInicial}\Exportaciones\{csvFileName}";
-                string csvFilePath = Path.Combine(csvPathArchivo, csvFileName);
+                string csvFilePath = $@"{funciones.DirectorioInicial}\Exportaciones\ImportStockHioffice.csv"; // Reemplaza esta ruta con la ubicación deseada
+                if (File.Exists(csvFilePath))//Validar si existe el archivo
+                {
+                    File.Delete(csvFilePath);
+                }
 
                 // Guardar el contenido en un archivo CSV
-                File.WriteAllText(csvPathArchivo, csvContent.ToString(), Encoding.UTF8);
-
-                funciones.EscribirLog("info", $"Archivo CSV creado y guardado en  {csvPathArchivo}\n DIRECTORIO:\n{funciones.DirectorioInicial}", true, 2);
+                File.WriteAllText(csvFilePath, csvContent.ToString(), Encoding.UTF8);
+                // Registrar en el log
+                funciones.EscribirLog("info", "Archivo CSV creado y guardado en " + csvFilePath, true, 1);
 
                 CloseConexionWebService(funciones.Token, funciones.cloudClient);//Logout
                 ConectarWebService("Import");//Nueva conexión para Importación
+
             }
             catch (Exception ex)
             {
@@ -349,6 +360,8 @@ namespace StockAlDia
             }
 
         }
+
+
 
         private async void CloseConexionWebService(string token, string cloud)
         {
@@ -399,7 +412,7 @@ namespace StockAlDia
                     // Leer la respuesta y convertirla en un string
                     var responseBody = await response.Content.ReadAsStringAsync();
                     return responseBody;
-                    funciones.EscribirLog("info", responseBody, true, 4);
+                    //-- funciones.EscribirLog("info", responseBody, true, 4);
                 }
                 catch (HttpRequestException e)
                 {
@@ -414,8 +427,7 @@ namespace StockAlDia
             //Asignar variables
             funciones.fechIni = fechaInicio.Text;
             funciones.fechFin = fechaFin.Text;
-            funciones.EscribirLog("info", $"Se ejecuto de manera manual: " +
-                $"\nFecha Inicio:{funciones.fechIni}\nFecha Fin:{funciones.fechFin}", true, 4); 
+            funciones.EscribirLog("info", $"Se ejecuto de manera manual: \nFecha Inicio:{funciones.fechIni} < - - > Fecha Fin:{funciones.fechFin}", false, 2); 
 
             ConectarWebService("Exportacion");
         }
