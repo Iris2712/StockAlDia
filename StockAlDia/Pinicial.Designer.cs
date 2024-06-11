@@ -81,8 +81,11 @@
             // 
             // EjecutaManual
             // 
+            this.EjecutaManual.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.EjecutaManual.Font = new System.Drawing.Font("Candara", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.EjecutaManual.Location = new System.Drawing.Point(534, 382);
+            this.EjecutaManual.Location = new System.Drawing.Point(278, 372);
             this.EjecutaManual.Name = "EjecutaManual";
             this.EjecutaManual.Size = new System.Drawing.Size(93, 32);
             this.EjecutaManual.TabIndex = 4;
@@ -124,6 +127,7 @@
             this.Controls.Add(this.fechaFin);
             this.Controls.Add(this.fechaInicio);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
             this.Name = "PInicial";
             this.Text = "Stock a una Fecha";
             ((System.ComponentModel.ISupportInitialize)(this.btnConfi)).EndInit();

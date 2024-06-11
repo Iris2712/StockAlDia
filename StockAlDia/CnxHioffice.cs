@@ -95,7 +95,7 @@ namespace StockAlDia
                     this.Close();
                     System.Environment.Exit(0);
                     this.Hide();
-                    PInicial pini = new PInicial();
+                    PInicial pini = new PInicial("");
                     pini.ShowDialog();
                     this.Show();
                 }

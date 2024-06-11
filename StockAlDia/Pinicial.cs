@@ -27,7 +27,7 @@ namespace StockAlDia
         public Boolean r;
 
 
-        public PInicial()
+        public PInicial(string param)
         {
             InitializeComponent();
 
@@ -49,6 +49,20 @@ namespace StockAlDia
                 funciones.ConexionBD();
                 // Llamada al método para conectar al WS
                 //ConectarWebService("Exportacion");
+
+                if (param == "")
+                {//sin parametros
+                    this.Show();
+                }
+                else
+                {//si hay parametro
+                    if (param == "Plugin")
+                    {
+                        ConectarWebService("Exportacion");
+                    }
+                }
+
+
 
             }
         }

@@ -12,11 +12,24 @@ namespace StockAlDia
         /// Punto de entrada principal para la aplicación.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new PInicial());
+
+            //Leer linea de comandos
+            string param = "";
+
+            Console.WriteLine($"parameter count = {args.Length}");
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                Console.WriteLine($"Arg[{i}] = [{args[i]}]");
+                if (i == 0) { param = args[i]; }
+            }
+            Application.Run(new PInicial(param));
+
+            //Application.Run(new PInicial());
         }
 
     }
