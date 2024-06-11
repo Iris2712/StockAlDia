@@ -15,6 +15,7 @@ using System.Data.SqlClient;
 using System.Xml;
 using Microsoft.Win32;
 using System.Net.Http.Headers;
+using System.Text.Json;
 
 namespace StockAlDia
 {
@@ -58,14 +59,12 @@ namespace StockAlDia
                 {//si hay parametro
                     if (param == "Plugin")
                     {
+                        this.Hide();
                         funciones.fechIni = fechaInicio.Text;
                         funciones.fechFin = fechaFin.Text;
                         ConectarWebService("Exportacion");
                     }
                 }
-
-
-
             }
         }
 
@@ -110,8 +109,8 @@ namespace StockAlDia
                         }
                         else if (tipoConx == "Import")
                         {
-                            string pathExport = "C:\\Users\\USER\\source\\repos\\Iris2712\\StockAlDia\\bin\\Debug\\Exportaciones\\ExportacionP.csv";
-                            ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token,pathExport );
+                            string pathExportH = $"{funciones.DirectorioInicial}\\Exportaciones\\ImportStockHioffice.csv";
+                            ImportHiofficeConArchivo(funciones.cloudClient, "169a946b-2f25-407f-a957-d1001c2ea88b", funciones.Token,pathExportH );
                             //MessageBox.Show($"Entró a la conexión WS:{funciones.Token} y\n {funciones.cloudClient}");
                         }
                     }
@@ -361,8 +360,6 @@ namespace StockAlDia
 
         }
 
-
-
         private async void CloseConexionWebService(string token, string cloud)
         {
             string Servidor = $"https://{cloud}";
@@ -403,21 +400,64 @@ namespace StockAlDia
                 var fileContent = new ByteArrayContent(File.ReadAllBytes(filePath));
                 fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
+                 
+                //try
+                //{
+                //    var response = await client.PostAsync(url, form);// Hacer la petición POST
+                //    response.EnsureSuccessStatusCode();// Verificar que la respuesta sea exitosa
+
+                //    // Leer la respuesta y convertirla en un string
+                //    var responseBody = await response.Content.ReadAsStringAsync();
+                //    return responseBody;
+                //    funciones.EscribirLog("info", responseBody, true, 4);
+                //}
+                //catch (HttpRequestException e)
+                //{
+                //    return $"Error: {e.Message}";
+                //}
 
                 try
                 {
-                    var response = await client.PostAsync(url, form);// Hacer la petición POST
-                    response.EnsureSuccessStatusCode();// Verificar que la respuesta sea exitosa
+                    var response = await client.PostAsync(url, form); // Hacer la petición POST
+                    response.EnsureSuccessStatusCode(); // Verificar que la respuesta sea exitosa
 
                     // Leer la respuesta y convertirla en un string
                     var responseBody = await response.Content.ReadAsStringAsync();
-                    return responseBody;
-                    //-- funciones.EscribirLog("info", responseBody, true, 4);
+                    funciones.EscribirLog("info", "Response Body: " + responseBody, true, 4);
+
+                    // Deserializar el JSON y extraer el valor de importUUID
+                    using (JsonDocument doc = JsonDocument.Parse(responseBody))
+                    {
+                        JsonElement root = doc.RootElement;
+                        if (root.TryGetProperty("importUUID", out JsonElement importUUIDElement))
+                        {
+                            string importUUID = importUUIDElement.GetString();
+                            funciones.EscribirLog("info", "ImportUUID: " + importUUID, true, 4);
+                            return importUUID;
+                        }
+                        else
+                        {
+                            throw new Exception("La clave 'importUUID' no se encontró en la respuesta JSON.");
+                        }
+                    }
                 }
                 catch (HttpRequestException e)
                 {
+                    funciones.EscribirLog("info", $"Error: {e.Message}", true, 1);
                     return $"Error: {e.Message}";
                 }
+                catch (System.Text.Json.JsonException e)
+                {
+                    funciones.EscribirLog("info", $"Error al procesar el JSON: {e.Message}", true, 1);
+                    return $"Error al procesar el JSON: {e.Message}";
+                }
+                catch (Exception e)
+                {
+                    funciones.EscribirLog("info", $"Error: {e.Message}", true, 1);
+                    return $"Error: {e.Message}";
+                }
+
+
             }
 
         }
