@@ -50,7 +50,7 @@ namespace StockAlDia
                 funciones.ConexionBD();
                 // Llamada al método para conectar al WS
                 //ConectarWebService("Exportacion");
-
+                funciones.EscribirLog("info", param, true, 4);
                 if (param == "")
                 {//sin parametros
                     this.Show();
@@ -59,6 +59,8 @@ namespace StockAlDia
                 {//si hay parametro
                     if (param == "Plugin")
                     {
+                        funciones.EscribirLog("info2", param, true, 4);
+
                         this.Hide();
                         funciones.fechIni = fechaInicio.Text;
                         funciones.fechFin = fechaFin.Text;
@@ -400,8 +402,8 @@ namespace StockAlDia
                 var fileContent = new ByteArrayContent(File.ReadAllBytes(filePath));
                 fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
-                 
-                //try
+
+                //try 
                 //{
                 //    var response = await client.PostAsync(url, form);// Hacer la petición POST
                 //    response.EnsureSuccessStatusCode();// Verificar que la respuesta sea exitosa
@@ -423,37 +425,56 @@ namespace StockAlDia
 
                     // Leer la respuesta y convertirla en un string
                     var responseBody = await response.Content.ReadAsStringAsync();
-                    funciones.EscribirLog("info", "Response Body: " + responseBody, true, 4);
+
+                    // Imprimir el cuerpo de la respuesta para depuración
+                    Console.WriteLine("Response Body: " + responseBody);
+                    funciones.EscribirLog("info", "Response Body: " + responseBody, true, 1);
 
                     // Deserializar el JSON y extraer el valor de importUUID
                     using (JsonDocument doc = JsonDocument.Parse(responseBody))
                     {
                         JsonElement root = doc.RootElement;
-                        if (root.TryGetProperty("importUUID", out JsonElement importUUIDElement))
+                        if (root.ValueKind == JsonValueKind.Array)
                         {
-                            string importUUID = importUUIDElement.GetString();
-                            funciones.EscribirLog("info", "ImportUUID: " + importUUID, true, 4);
-                            return importUUID;
+                            foreach (JsonElement element in root.EnumerateArray())
+                            {
+                                if (element.TryGetProperty("importUUID", out JsonElement importUUIDElement))
+                                {
+                                    string importUUID = importUUIDElement.GetString();
+
+                                    // Imprimir el UUID en pantalla y en el log para depuración
+                                    Console.WriteLine($"importUUID: {importUUID}");
+                                    funciones.EscribirLog("info", "ImportUUID: " + importUUID, true, 1);
+                                    await EstadoImport(importUUID);
+                                    return importUUID;
+                                }
+                                
+                            }
+
+                            throw new Exception("La clave 'importUUID' no se encontró en ningún objeto dentro del array JSON.");
                         }
                         else
                         {
-                            throw new Exception("La clave 'importUUID' no se encontró en la respuesta JSON.");
+                            throw new Exception("El elemento raíz del JSON no es un array.");
                         }
                     }
                 }
                 catch (HttpRequestException e)
                 {
-                    funciones.EscribirLog("info", $"Error: {e.Message}", true, 1);
+                    Console.WriteLine($"Error: {e.Message}");
+                    funciones.EscribirLog("error", $"Error: {e.Message}", true, 1);
                     return $"Error: {e.Message}";
                 }
                 catch (System.Text.Json.JsonException e)
                 {
-                    funciones.EscribirLog("info", $"Error al procesar el JSON: {e.Message}", true, 1);
+                    Console.WriteLine($"Error al procesar el JSON: {e.Message}");
+                    funciones.EscribirLog("error", $"Error al procesar el JSON: {e.Message}", true, 1);
                     return $"Error al procesar el JSON: {e.Message}";
                 }
                 catch (Exception e)
                 {
-                    funciones.EscribirLog("info", $"Error: {e.Message}", true, 1);
+                    Console.WriteLine($"Error: {e.Message}");
+                    funciones.EscribirLog("error", $"Error: {e.Message}", true, 1);
                     return $"Error: {e.Message}";
                 }
 
@@ -462,6 +483,114 @@ namespace StockAlDia
 
         }
 
+        public static async Task EstadoImport(string UUID)
+        {
+            string servidor = funciones.cloudClient;
+            string token = funciones.Token;
+
+            UriBuilder uriBuilder = new UriBuilder($"https://{servidor}/bridge-back/api/import/{UUID}/status");
+
+            using (var client = new HttpClient())
+            {
+                // Establecer el token de autenticación en el encabezado
+                client.DefaultRequestHeaders.Add("x-auth-token", token);
+
+                try
+                {
+                    HttpResponseMessage response = await client.GetAsync(uriBuilder.Uri);// Realizar la petición GET
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        string responseBody = await response.Content.ReadAsStringAsync(); // Leer el contenido de la respuesta
+                        var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseBody); // Deserializar el JSON a un objeto dinámico
+
+                        int statusId = data.statusId; // Obtener el statusId
+
+                        // Imprimir el estado
+                        //funciones.EscribirLog("info", "El statusId de la importación es: " + statusId, true, 2);
+                        
+                        if (statusId == 1)
+                        {
+                            funciones.EscribirLog("info", "El statusId de la importación es: En Ejecución", true, 2);
+                        }else if (statusId == 2)
+                        {
+                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada con errores", true, 2);
+                            await ObtenerErrores(UUID);
+                        }else if(statusId == 3)
+                        {
+                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada correctamente", true, 2);
+                        }
+                        else
+                        {
+                            funciones.EscribirLog("info", "\"El statusId de la importación es: Estado desconocido", true, 2);
+                        }
+
+                    }
+                    else
+                    {
+                        funciones.EscribirLog("info", $"Error en la petición: { response.StatusCode}", true, 1);
+                        string errorResponse = await response.Content.ReadAsStringAsync();
+                        funciones.EscribirLog("info", errorResponse, true, 1);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    funciones.EscribirLog("info", "Excepción durante la petición: " + ex.Message, true, 1);
+                }
+            }
+        }
+
+        public static async Task ObtenerErrores(string UUID)
+        {
+            string servidor = funciones.cloudClient;
+            string token = funciones.Token;
+
+            string eCode,eText,eTimestamp;
+            
+
+            UriBuilder uriBuilder = new UriBuilder($"https://{servidor}/bridge-back/api/import/{UUID}/errors");
+
+            using (var client = new HttpClient())
+            {
+                // Establecer el token de autenticación en el encabezado
+                client.DefaultRequestHeaders.Add("x-auth-token", token);
+
+                try
+                {
+                    // Realizar la petición GET
+                    HttpResponseMessage response = await client.GetAsync(uriBuilder.Uri);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Leer el contenido de la respuesta
+                        string responseBody = await response.Content.ReadAsStringAsync();
+
+                        // Deserializar el JSON a un objeto dinámico
+                        var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseBody);
+
+                        // Obtener el objeto errores
+                        var errors = data.errors;
+
+                        // Imprimir los errores
+                        foreach (var error in errors)
+                        {
+                            eCode = error.errorCode;
+                            eText = error.errorText;
+                            eTimestamp = error.errorTimestamp;
+                            funciones.EscribirLog("info", $"Codigo Error: + {eCode}\nError:{eText}\nError Timestamp:{eTimestamp}", true, 2);
+                        }
+                    }
+                    else
+                    {
+                        funciones.EscribirLog("info",$"Error en la petición: {response.StatusCode}",true,1);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("info",$"Excepción capturada: {ex.Message}",true,1);
+                }
+            }
+        }
         private void EjecutaManual_Click(object sender, EventArgs e)
         {
             //Asignar variables
@@ -471,7 +600,7 @@ namespace StockAlDia
 
             ConectarWebService("Exportacion");
         }
-
+       
         private void btnConfi_Click(object sender, EventArgs e)
         {
             ConexionBD conBD = new ConexionBD(funciones);

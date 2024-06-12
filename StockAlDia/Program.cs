@@ -25,6 +25,7 @@ namespace StockAlDia
             for (int i = 0; i < args.Length; i++)
             {
                 Console.WriteLine($"Arg[{i}] = [{args[i]}]");
+                
                 if (i == 0) { param = args[i]; }
             }
             Application.Run(new PInicial(param));
