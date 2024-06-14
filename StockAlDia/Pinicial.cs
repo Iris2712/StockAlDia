@@ -50,7 +50,7 @@ namespace StockAlDia
                 funciones.ConexionBD();
                 // Llamada al método para conectar al WS
                 //ConectarWebService("Exportacion");
-                funciones.EscribirLog("info", param, true, 4);
+
                 if (param == "")
                 {//sin parametros
                     this.Show();
@@ -93,7 +93,8 @@ namespace StockAlDia
                     if (response.IsSuccessStatusCode)
                     {
                         string responseBody = await response.Content.ReadAsStringAsync();
-                        funciones.EscribirLog("info", $"Respuesta del servicio web: {responseBody}", true, 2);
+                        funciones.EscribirLog("info", $"Respuesta del servicio web: {responseBody}", false, 2);
+                        AddMessagetxtBox("Respuesta del servicio web: {responseBody}");
 
                         //Leer XML de respuesta del WS
                         XDocument xmlDoc = XDocument.Parse(responseBody);
@@ -102,7 +103,9 @@ namespace StockAlDia
 
                         funciones.cloudClient = adressElement.Value;
                         funciones.Token = authTokenElement.Value;
-                        funciones.EscribirLog("info", $"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}", true, 2);
+
+                        funciones.EscribirLog("info", $"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}", false, 2);
+                        AddMessagetxtBox("clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}");
 
                         if (tipoConx == "Exportacion")
                         {
@@ -130,8 +133,6 @@ namespace StockAlDia
 
         private async void Exportación(string token, string cloud, string startDate, string endDate)
         {
-
-
             try
             {
                 funciones.urlPostExport = $"https://{cloud}/ErpCloud/exportation/launch";// URL de la API
@@ -150,7 +151,9 @@ namespace StockAlDia
                     {
                         // Procesar la respuesta
                         funciones.responseData = await response.Content.ReadAsStringAsync();
-                        funciones.EscribirLog("info", $"Respuesta:{funciones.responseData}", true, 2);
+                        funciones.EscribirLog("info", $"Respuesta:{funciones.responseData}", false, 2);
+                        AddMessagetxtBox($"Respuesta: {funciones.responseData}");
+
                         LeerJson(funciones.responseData);
                     }
                     else
@@ -176,14 +179,17 @@ namespace StockAlDia
                 {
                     string dataJson = rootObjects[0].ExportedDocs[0].Data;
 
-                    funciones.EscribirLog("info", $"Data: {dataJson}", true, 2);
-
+                    funciones.EscribirLog("info", $"Data: {dataJson}", false, 2);
+                    AddMessagetxtBox($"Data: {dataJson}");
+                    
                     // Decodificar la cadena de base64
                     byte[] data = Convert.FromBase64String(dataJson);
                     funciones.decoExport = Encoding.UTF8.GetString(data);// Convertir los bytes a una cadena
                     funciones.EscribirLog("info", $"Cadena decodificada: {funciones.decoExport}", false, 2);
-                    ImportarStockExportador(funciones.decoExport);
+                    AddMessagetxtBox($"Cadena decodificada: {funciones.decoExport}");
 
+                    //Llamar metodo para realizar importacion
+                    ImportarStockExportador(funciones.decoExport);
                 }
                 else
                 {
@@ -231,7 +237,10 @@ namespace StockAlDia
                     ReaderInsert.Close();
                     //funciones.EscribirLog("info", "Se importo de manera correcta los registros", true, 2);
                 }
-                funciones.EscribirLog("info", "Se importaron los registros de manera correcta los registros", true, 2);
+                funciones.EscribirLog("info", "Se importaron los registros de manera correcta los registros", false, 2);
+                AddMessagetxtBox("Se importaron los registros de manera correcta los registros");
+                
+                //Llamada de metodos para reconstruir el stock
                 ReconstruirStock();
                 ArmarImporHioffice();
             }
@@ -271,7 +280,8 @@ namespace StockAlDia
 
                 }
                 Reconstr.Close();
-                funciones.EscribirLog("info", $"Se realizó de manera correcta el Recalculo se Stock", true, 2);
+                funciones.EscribirLog("info", $"Se realizó de manera correcta el Recalculo se Stock", false, 2);
+                AddMessagetxtBox("Se realizó de manera correcta el Recalculo se Stock");
             }
             catch (Exception ex)
             {
@@ -349,7 +359,8 @@ namespace StockAlDia
                 // Guardar el contenido en un archivo CSV
                 File.WriteAllText(csvFilePath, csvContent.ToString(), Encoding.UTF8);
                 // Registrar en el log
-                funciones.EscribirLog("info", "Archivo CSV creado y guardado en " + csvFilePath, true, 1);
+                funciones.EscribirLog("info", "Archivo CSV creado y guardado en " + csvFilePath, false, 2);
+                AddMessagetxtBox("Archivo CSV creado y guardado en:\n " + csvFilePath);
 
                 CloseConexionWebService(funciones.Token, funciones.cloudClient);//Logout
                 ConectarWebService("Import");//Nueva conexión para Importación
@@ -374,7 +385,8 @@ namespace StockAlDia
                     HttpResponseMessage response = await httpClient.GetAsync("ErpCloud/session/logout");
                     if (response.IsSuccessStatusCode)
                     {
-                        funciones.EscribirLog("info", "Logout Exitoso", true, 2);
+                        funciones.EscribirLog("info", "Logout Exitoso", false, 2);
+                        AddMessagetxtBox("Logout Exitoso");
                     }
                     else
                     {
@@ -428,7 +440,8 @@ namespace StockAlDia
 
                     // Imprimir el cuerpo de la respuesta para depuración
                     Console.WriteLine("Response Body: " + responseBody);
-                    funciones.EscribirLog("info", "Response Body: " + responseBody, true, 1);
+                    funciones.EscribirLog("info", "Response Body: " + responseBody, false, 2);
+                    //AddMessagetxtBox("Response Body:\n" + responseBody);
 
                     // Deserializar el JSON y extraer el valor de importUUID
                     using (JsonDocument doc = JsonDocument.Parse(responseBody))
@@ -444,7 +457,7 @@ namespace StockAlDia
 
                                     // Imprimir el UUID en pantalla y en el log para depuración
                                     Console.WriteLine($"importUUID: {importUUID}");
-                                    funciones.EscribirLog("info", "ImportUUID: " + importUUID, true, 1);
+                                    funciones.EscribirLog("info", "ImportUUID: " + importUUID, false, 4);
                                     await EstadoImport(importUUID);
                                     return importUUID;
                                 }
@@ -452,10 +465,12 @@ namespace StockAlDia
                             }
 
                             throw new Exception("La clave 'importUUID' no se encontró en ningún objeto dentro del array JSON.");
+                            funciones.EscribirLog("info", "La clave 'importUUID' no se encontró en ningún objeto dentro del array JSON.", false, 4);
                         }
                         else
                         {
                             throw new Exception("El elemento raíz del JSON no es un array.");
+                            funciones.EscribirLog("info", "El elemento raíz del JSON no es un array.", false, 4);
                         }
                     }
                 }
@@ -477,17 +492,14 @@ namespace StockAlDia
                     funciones.EscribirLog("error", $"Error: {e.Message}", true, 1);
                     return $"Error: {e.Message}";
                 }
-
-
             }
-
         }
 
         public static async Task EstadoImport(string UUID)
         {
             string servidor = funciones.cloudClient;
             string token = funciones.Token;
-
+            
             UriBuilder uriBuilder = new UriBuilder($"https://{servidor}/bridge-back/api/import/{UUID}/status");
 
             using (var client = new HttpClient())
@@ -511,18 +523,20 @@ namespace StockAlDia
                         
                         if (statusId == 1)
                         {
-                            funciones.EscribirLog("info", "El statusId de la importación es: En Ejecución", true, 2);
-                        }else if (statusId == 2)
+                            funciones.EscribirLog("info", "El statusId de la importación es: En Ejecución", false, 2);
+                            //AddMessagetxtBox("El statusId de la importación es: En Ejecución");
+                        }
+                        else if (statusId == 2)
                         {
-                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada con errores", true, 2);
+                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada con errores", false, 2);
                             await ObtenerErrores(UUID);
                         }else if(statusId == 3)
                         {
-                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada correctamente", true, 2);
+                            funciones.EscribirLog("info", "El statusId de la importación es: Terminada correctamente", false, 2);
                         }
                         else
                         {
-                            funciones.EscribirLog("info", "\"El statusId de la importación es: Estado desconocido", true, 2);
+                            funciones.EscribirLog("info", "\"El statusId de la importación es: Estado desconocido", false, 2);
                         }
 
                     }
@@ -577,7 +591,8 @@ namespace StockAlDia
                             eCode = error.errorCode;
                             eText = error.errorText;
                             eTimestamp = error.errorTimestamp;
-                            funciones.EscribirLog("info", $"Codigo Error: + {eCode}\nError:{eText}\nError Timestamp:{eTimestamp}", true, 2);
+                            funciones.EscribirLog("info", $"Codigo Error: + {eCode}\nError:{eText}\nError Timestamp:{eTimestamp}", false, 2);
+                            
                         }
                     }
                     else
@@ -607,6 +622,32 @@ namespace StockAlDia
             conBD.ShowDialog();
 
         }
+
+        private void btnDetener_Click(object sender, EventArgs e)
+        {
+            System.Environment.Exit(0);
+        }
+
+
+        // Método para agregar mensajes al TextBox
+        private void AddMessagetxtBox(string message)
+        {
+            string msj = "******************************************************\n\n" + message;
+
+            if (textBoxLOG.InvokeRequired)
+            {
+                textBoxLOG.Invoke(new Action<string>(AddMessagetxtBox), new object[] { msj });
+            }
+            else
+            {
+                textBoxLOG.AppendText(msj + Environment.NewLine);
+            }
+        }
+
+
+
+
+
     }
 
     public class ExportedDoc
