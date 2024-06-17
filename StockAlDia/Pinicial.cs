@@ -28,6 +28,7 @@ namespace StockAlDia
         public Boolean r;
 
 
+
         public PInicial(string param)
         {
             InitializeComponent();
@@ -105,7 +106,7 @@ namespace StockAlDia
                         funciones.Token = authTokenElement.Value;
 
                         funciones.EscribirLog("info", $"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}", false, 2);
-                        AddMessagetxtBox("clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}");
+                        AddMessagetxtBox($"clodclient:{funciones.cloudClient}\ntoken:{funciones.Token}");
 
                         if (tipoConx == "Exportacion")
                         {
@@ -237,8 +238,8 @@ namespace StockAlDia
                     ReaderInsert.Close();
                     //funciones.EscribirLog("info", "Se importo de manera correcta los registros", true, 2);
                 }
-                funciones.EscribirLog("info", "Se importaron los registros de manera correcta los registros", false, 2);
-                AddMessagetxtBox("Se importaron los registros de manera correcta los registros");
+                funciones.EscribirLog("info", "Se importaron los registros de manera correcta a la base local", false, 2);
+                AddMessagetxtBox("Se importaron los registros de manera correcta a la base local");
                 
                 //Llamada de metodos para reconstruir el stock
                 ReconstruirStock();
@@ -400,48 +401,32 @@ namespace StockAlDia
             }
         }
 
-        public static async Task<string> ImportHiofficeConArchivo(string cloud, string id_importation, string token, string filePath)
+        public static string ImportHiofficeConArchivo(string cloud, string id_importation, string token, string filePath)
         {
-            string url = $"https://{cloud}/bridge-back/api/import/{id_importation}/launchWithFile";// URL completa para la petición POST
+            string url = $"https://{cloud}/bridge-back/api/import/{id_importation}/launchWithFile"; // URL completa para la petición POST
 
             using (var client = new HttpClient())
             {
-                client.DefaultRequestHeaders.Add("x-auth-token", token);// Establecer el token de autenticación en el encabezado
+                client.DefaultRequestHeaders.Add("x-auth-token", token); // Establecer el token de autenticación en el encabezado
 
-                var form = new MultipartFormDataContent();// Crear el contenido multipart/form-data
+                var form = new MultipartFormDataContent(); // Crear el contenido multipart/form-data
 
                 // Agregar el archivo al contenido del formulario
                 var fileContent = new ByteArrayContent(File.ReadAllBytes(filePath));
                 fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("multipart/form-data");
                 form.Add(fileContent, "file", Path.GetFileName(filePath));
 
-                //try 
-                //{
-                //    var response = await client.PostAsync(url, form);// Hacer la petición POST
-                //    response.EnsureSuccessStatusCode();// Verificar que la respuesta sea exitosa
-
-                //    // Leer la respuesta y convertirla en un string
-                //    var responseBody = await response.Content.ReadAsStringAsync();
-                //    return responseBody;
-                //    funciones.EscribirLog("info", responseBody, true, 4);
-                //}
-                //catch (HttpRequestException e)
-                //{
-                //    return $"Error: {e.Message}";
-                //}
-
                 try
                 {
-                    var response = await client.PostAsync(url, form); // Hacer la petición POST
+                    var response = client.PostAsync(url, form).Result; // Hacer la petición POST de manera síncrona
                     response.EnsureSuccessStatusCode(); // Verificar que la respuesta sea exitosa
 
-                    // Leer la respuesta y convertirla en un string
-                    var responseBody = await response.Content.ReadAsStringAsync();
+                    // Leer la respuesta y convertirla en un string de manera síncrona
+                    var responseBody = response.Content.ReadAsStringAsync().Result;
 
                     // Imprimir el cuerpo de la respuesta para depuración
                     Console.WriteLine("Response Body: " + responseBody);
                     funciones.EscribirLog("info", "Response Body: " + responseBody, false, 2);
-                    //AddMessagetxtBox("Response Body:\n" + responseBody);
 
                     // Deserializar el JSON y extraer el valor de importUUID
                     using (JsonDocument doc = JsonDocument.Parse(responseBody))
@@ -458,19 +443,18 @@ namespace StockAlDia
                                     // Imprimir el UUID en pantalla y en el log para depuración
                                     Console.WriteLine($"importUUID: {importUUID}");
                                     funciones.EscribirLog("info", "ImportUUID: " + importUUID, false, 4);
-                                    await EstadoImport(importUUID);
+
+                                    // Llamar a EstadoImport 
+                                    EstadoImport(importUUID);
                                     return importUUID;
                                 }
-                                
                             }
 
                             throw new Exception("La clave 'importUUID' no se encontró en ningún objeto dentro del array JSON.");
-                            funciones.EscribirLog("info", "La clave 'importUUID' no se encontró en ningún objeto dentro del array JSON.", false, 4);
                         }
                         else
                         {
                             throw new Exception("El elemento raíz del JSON no es un array.");
-                            funciones.EscribirLog("info", "El elemento raíz del JSON no es un array.", false, 4);
                         }
                     }
                 }
@@ -495,11 +479,12 @@ namespace StockAlDia
             }
         }
 
-        public static async Task EstadoImport(string UUID)
+        public static void EstadoImport(string UUID)
         {
+            PInicial pini = new PInicial("");
             string servidor = funciones.cloudClient;
             string token = funciones.Token;
-            
+
             UriBuilder uriBuilder = new UriBuilder($"https://{servidor}/bridge-back/api/import/{UUID}/status");
 
             using (var client = new HttpClient())
@@ -509,41 +494,41 @@ namespace StockAlDia
 
                 try
                 {
-                    HttpResponseMessage response = await client.GetAsync(uriBuilder.Uri);// Realizar la petición GET
+                    HttpResponseMessage response = client.GetAsync(uriBuilder.Uri).Result; // Realizar la petición GET de manera síncrona
 
                     if (response.IsSuccessStatusCode)
                     {
-                        string responseBody = await response.Content.ReadAsStringAsync(); // Leer el contenido de la respuesta
+                        string responseBody = response.Content.ReadAsStringAsync().Result; // Leer el contenido de la respuesta de manera síncrona
                         var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseBody); // Deserializar el JSON a un objeto dinámico
 
                         int statusId = data.statusId; // Obtener el statusId
 
                         // Imprimir el estado
-                        //funciones.EscribirLog("info", "El statusId de la importación es: " + statusId, true, 2);
-                        
                         if (statusId == 1)
                         {
                             funciones.EscribirLog("info", "El statusId de la importación es: En Ejecución", false, 2);
-                            //AddMessagetxtBox("El statusId de la importación es: En Ejecución");
+                            pini.AddMessagetxtBox("El statusId de la importación es: En Ejecución");
                         }
                         else if (statusId == 2)
                         {
                             funciones.EscribirLog("info", "El statusId de la importación es: Terminada con errores", false, 2);
-                            await ObtenerErrores(UUID);
-                        }else if(statusId == 3)
+                            ObtenerErrores(UUID); // Llamar a ObtenerErrores 
+                        }
+                        else if (statusId == 3)
                         {
                             funciones.EscribirLog("info", "El statusId de la importación es: Terminada correctamente", false, 2);
+                            pini.AddMessagetxtBox("La importación TERMINO CORRECTAMENTE");
                         }
                         else
                         {
-                            funciones.EscribirLog("info", "\"El statusId de la importación es: Estado desconocido", false, 2);
+                            funciones.EscribirLog("info", "El statusId de la importación es: Estado desconocido", false, 2);
                         }
 
                     }
                     else
                     {
-                        funciones.EscribirLog("info", $"Error en la petición: { response.StatusCode}", true, 1);
-                        string errorResponse = await response.Content.ReadAsStringAsync();
+                        funciones.EscribirLog("info", $"Error en la petición: {response.StatusCode}", true, 1);
+                        string errorResponse = response.Content.ReadAsStringAsync().Result;
                         funciones.EscribirLog("info", errorResponse, true, 1);
                     }
                 }
@@ -554,13 +539,12 @@ namespace StockAlDia
             }
         }
 
-        public static async Task ObtenerErrores(string UUID)
+        public static void ObtenerErrores(string UUID)
         {
             string servidor = funciones.cloudClient;
             string token = funciones.Token;
 
-            string eCode,eText,eTimestamp;
-            
+            string eCode, eText, eTimestamp;
 
             UriBuilder uriBuilder = new UriBuilder($"https://{servidor}/bridge-back/api/import/{UUID}/errors");
 
@@ -571,13 +555,13 @@ namespace StockAlDia
 
                 try
                 {
-                    // Realizar la petición GET
-                    HttpResponseMessage response = await client.GetAsync(uriBuilder.Uri);
+                    // Realizar la petición GET de manera síncrona
+                    HttpResponseMessage response = client.GetAsync(uriBuilder.Uri).Result;
 
                     if (response.IsSuccessStatusCode)
                     {
-                        // Leer el contenido de la respuesta
-                        string responseBody = await response.Content.ReadAsStringAsync();
+                        // Leer el contenido de la respuesta de manera síncrona
+                        string responseBody = response.Content.ReadAsStringAsync().Result;
 
                         // Deserializar el JSON a un objeto dinámico
                         var data = Newtonsoft.Json.JsonConvert.DeserializeObject<dynamic>(responseBody);
@@ -591,21 +575,22 @@ namespace StockAlDia
                             eCode = error.errorCode;
                             eText = error.errorText;
                             eTimestamp = error.errorTimestamp;
-                            funciones.EscribirLog("info", $"Codigo Error: + {eCode}\nError:{eText}\nError Timestamp:{eTimestamp}", false, 2);
-                            
+                            funciones.EscribirLog("info", $"Codigo Error: {eCode}\nError: {eText}\nError Timestamp: {eTimestamp}", false, 2);
                         }
                     }
                     else
                     {
-                        funciones.EscribirLog("info",$"Error en la petición: {response.StatusCode}",true,1);
+                        funciones.EscribirLog("info", $"Error en la petición: {response.StatusCode}", true, 1);
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("info",$"Excepción capturada: {ex.Message}",true,1);
+                    funciones.EscribirLog("info", $"Excepción capturada: {ex.Message}", true, 1);
                 }
             }
         }
+
+
         private void EjecutaManual_Click(object sender, EventArgs e)
         {
             //Asignar variables
@@ -630,20 +615,25 @@ namespace StockAlDia
 
 
         // Método para agregar mensajes al TextBox
-        private void AddMessagetxtBox(string message)
+        public void AddMessagetxtBox(string message)
         {
-            string msj = "******************************************************\n\n" + message;
+            const string separator = "*******************************";
 
             if (textBoxLOG.InvokeRequired)
             {
-                textBoxLOG.Invoke(new Action<string>(AddMessagetxtBox), new object[] { msj });
+                textBoxLOG.Invoke(new Action<string>(AddMessagetxtBox), new object[] { message });
             }
             else
             {
-                textBoxLOG.AppendText(msj + Environment.NewLine);
+                if (!string.IsNullOrWhiteSpace(textBoxLOG.Text))
+                {
+                    textBoxLOG.AppendText(Environment.NewLine + separator + Environment.NewLine); // Agregar cadena de asteriscos
+                }
+                textBoxLOG.AppendText(message + Environment.NewLine);
             }
         }
 
+        
 
 
 

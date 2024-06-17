@@ -51,8 +51,6 @@ namespace StockAlDia
         public string fechIni {  get; set; }
         public string fechFin {  get; set; }
 
-
-
         //Escribir LOG de la Aplicación.
         public void EscribirLog(string Evento, string Mensaje, Boolean CajaTexto, int TipoCaja)
         {
@@ -176,6 +174,8 @@ namespace StockAlDia
                 if (CnnxICGMx.State == ConnectionState.Open)
                 {
                     EscribirLog("info", "Conexion a la BD con Exito.", false, 0);
+                    //pini.AddMessagetxtBox("Conexion a la BD con Exito.");
+
                     // Verificar y crear tablas donde se recibe Stock 
                     if (!TableExists(CnnxICGMx, "STOCKEXPORTADO"))
                     {
@@ -262,7 +262,7 @@ namespace StockAlDia
             }
         }
 
-
+        
         //Leer y Escribir Archivos Ini
         public class IniFile   // revision 11
         {
