@@ -95,7 +95,7 @@ namespace StockAlDia
                     {
                         string responseBody = await response.Content.ReadAsStringAsync();
                         funciones.EscribirLog("info", $"Respuesta del servicio web: {responseBody}", false, 2);
-                        AddMessagetxtBox("Respuesta del servicio web: {responseBody}");
+                        AddMessagetxtBox($"Respuesta del servicio web: {responseBody}");
 
                         //Leer XML de respuesta del WS
                         XDocument xmlDoc = XDocument.Parse(responseBody);
